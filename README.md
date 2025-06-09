@@ -5,8 +5,11 @@
 
 # Requirements
 - Compiled JAR can be found inside jar-exec directory
-- Application should be started using Java 23
-- example usage: **java -jar cronparser-1.0.0-Java23.jar "*/15 0 1,15 * 1-5 /usr/bin/find"**
+- Download Java 23, eg. Amazon Corretto and add it to PATH environment variable, eg. **<<PATH_TO_JDKS>>/corretto-23.0.2/bin**
 
+# Usage example
+```bash
+java -jar cronparser-1.0.0-Java23.jar "*/15 0 1,15 * 1-5 /usr/bin/find"
+```
 
 
