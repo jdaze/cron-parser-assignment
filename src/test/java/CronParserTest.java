@@ -64,6 +64,17 @@ public class CronParserTest {
     }
 
     @Test
+    void shouldParseAprAs30DaysOfMonth() throws Exception {
+        var expr = cronParser.parse("5 12 * 4 3 /do/something");
+        assertEquals(List.of(5), expr.getMinutes());
+        assertEquals(List.of(12), expr.getHours());
+        assertEquals(IntStream.rangeClosed(1, 30).boxed().collect(Collectors.toList()), expr.getDaysOfMonth());
+        assertEquals(List.of(4), expr.getMonth());
+        assertEquals(List.of(3), expr.getDaysOfWeek());
+        assertEquals("/do/something", expr.getCommand());
+    }
+
+    @Test
     void shouldParseSingleValuesWithText() throws Exception {
         var expr = cronParser.parse("5 12 10 JUN WED /do/something");
         assertEquals(List.of(5), expr.getMinutes());
