@@ -1,6 +1,7 @@
 package dev.jdsoft.cronparser;
 
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import java.util.Arrays;
 import java.util.List;
@@ -8,57 +9,74 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+@NoArgsConstructor
 @AllArgsConstructor
 public enum CronSign {
 
-    ALL('*', (possibleValues, _) -> possibleValues),
-    SINGLE(((_, expression) -> List.of(Integer.parseInt(expression)))),
-    RANGE('-', ((_, expression) -> {
-        var values = expression.split("-");
-        if (values.length != 2) {
-            throw new Exception("Invalid cron expression.");
+    SINGLE() {
+        @Override
+        List<Integer> resolveValues(List<Integer> possibleValues, String expression) {
+            return List.of(Integer.parseInt(expression));
         }
-
-        var from = Integer.parseInt(values[0]);
-        var to = Integer.parseInt(values[1]);
-
-        return IntStream.rangeClosed(from, to)
-                .boxed().collect(Collectors.toList());
-    })),
-    CSV(',', ((_, expression) -> {
-        var values = expression.split(",");
-        if (values.length < 1) {
-            throw new Exception("Invalid cron expression.");
+    },
+    ALL('*') {
+        @Override
+        List<Integer> resolveValues(List<Integer> possibleValues, String expression) {
+            return possibleValues;
         }
-        return Arrays.stream(values).map(Integer::parseInt).collect(Collectors.toList());
-    })),
-    INCREMENTAL('/', ((possibleValues, expression) -> {
-        var values = expression.split("/");
-        if (values.length != 2) {
-            throw new Exception("Invalid cron expression.");
+    },
+    RANGE('-') {
+        @Override
+        List<Integer> resolveValues(List<Integer> possibleValues, String expression) throws Exception {
+            var values = expression.split("-");
+            if (values.length != 2) {
+                throw new Exception("Invalid cron expression.");
+            }
+
+            var from = Integer.parseInt(values[0]);
+            var to = Integer.parseInt(values[1]);
+
+            return IntStream.rangeClosed(from, to)
+                    .boxed().collect(Collectors.toList());
         }
-
-        int start = values[0].equals("*") ? possibleValues.getFirst() : Integer.parseInt(values[0]);
-        int step = Integer.parseInt(values[1]);
-
-        if (step <= 0) {
-            throw new Exception("Step must be greater than 0.");
+    },
+    CSV(',') {
+        @Override
+        List<Integer> resolveValues(List<Integer> possibleValues, String expression) throws Exception {
+            var values = expression.split(",");
+            if (values.length < 1) {
+                throw new Exception("Invalid cron expression.");
+            }
+            return Arrays.stream(values).map(Integer::parseInt).collect(Collectors.toList());
         }
+    },
+    INCREMENTAL('/') {
+        @Override
+        List<Integer> resolveValues(List<Integer> possibleValues, String expression) throws Exception {
+            var values = expression.split("/");
+            if (values.length != 2) {
+                throw new Exception("Invalid cron expression.");
+            }
 
-        return possibleValues.stream()
-                .filter(v -> v >= start && (v - start) % step == 0)
-                .collect(Collectors.toList());
-    }));
+            int start = values[0].equals("*") ? possibleValues.getFirst() : Integer.parseInt(values[0]);
+            int step = Integer.parseInt(values[1]);
+
+            if (step <= 0) {
+                throw new Exception("Step must be greater than 0.");
+            }
+
+            return possibleValues.stream()
+                    .filter(v -> v >= start && (v - start) % step == 0)
+                    .collect(Collectors.toList());
+        }
+    };
 
     private char character;
-    private final ValueResolver resolver;
 
-    CronSign(ValueResolver resolver) {
-        this.resolver = resolver;
-    }
+    abstract List<Integer> resolveValues(List<Integer> possibleValues, String expression) throws Exception;
 
     public List<Integer> resolve(List<Integer> possibleValues, String expression) throws Exception {
-        var values = resolver.resolve(possibleValues, expression);
+        var values = resolveValues(possibleValues, expression);
         validateIfOutsidePossibleValues(values, possibleValues);
         return values;
     }
